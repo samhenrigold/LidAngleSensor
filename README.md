@@ -37,3 +37,10 @@ I'm bad at audio.
 **Where did the sound effect come from?**
 
 LEGO Batman 3: Beyond Gotham. But you knew that already.
+
+**Why mac says its monitoring the keyboard?**
+
+<img width="500"  alt="keyboard access screenshot" src="https://github.com/user-attachments/assets/f38978b5-147e-4818-a097-3c025a3de980" />
+
+IOHIDManagerOpen, which I use to monitor the lid angle sensor, is more commonly used by people to monitor input devices (i.e. a keyboard). It’s so low level that Apple just assumes someone is using it to drink from that event monitoring firehose ([ref](https://x.com/theapache64/status/1964449242170479097))
+
