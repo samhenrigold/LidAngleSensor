@@ -29,6 +29,20 @@ typedef NS_ENUM(NSInteger, AudioMode) {
 @property (strong, nonatomic) NSLabel *modeLabel;
 @property (strong, nonatomic) NSTimer *updateTimer;
 @property (nonatomic, assign) AudioMode currentAudioMode;
+// Jitter UI controls
+@property (strong, nonatomic) NSButton *advancedToggleButton;
+@property (strong, nonatomic) NSView *advancedContainer;
+@property (strong, nonatomic) NSLayoutConstraint *advancedContainerHeightConstraint;
+@property (strong, nonatomic) NSButton *jitterToggleButton;
+@property (strong, nonatomic) NSLabel *jitterHeaderLabel;
+@property (strong, nonatomic) NSSlider *amplitudeSlider;
+@property (strong, nonatomic) NSLabel *amplitudeLabel;
+@property (strong, nonatomic) NSSlider *timeWindowSlider;
+@property (strong, nonatomic) NSLabel *timeWindowLabel;
+@property (strong, nonatomic) NSSlider *minDeltaSlider;
+@property (strong, nonatomic) NSLabel *minDeltaLabel;
+@property (strong, nonatomic) NSSlider *signFlipsSlider;
+@property (strong, nonatomic) NSLabel *signFlipsLabel;
 @end
 
 @implementation AppDelegate
@@ -53,47 +67,45 @@ typedef NS_ENUM(NSInteger, AudioMode) {
 }
 
 - (void)createWindow {
-    // Create the main window (taller to accommodate mode selection and audio controls)
-    NSRect windowFrame = NSMakeRect(100, 100, 450, 480);
+    // Create the main window (taller to accommodate mode + jitter controls)
+    NSRect windowFrame = NSMakeRect(100, 100, 500, 650);
     self.window = [[NSWindow alloc] initWithContentRect:windowFrame
-                                              styleMask:NSWindowStyleMaskTitled | 
-                                                       NSWindowStyleMaskClosable | 
+                                              styleMask:NSWindowStyleMaskTitled |
+                                                       NSWindowStyleMaskClosable |
                                                        NSWindowStyleMaskMiniaturizable
                                                 backing:NSBackingStoreBuffered
                                                   defer:NO];
-    
     [self.window setTitle:@"MacBook Lid Angle Sensor"];
     [self.window makeKeyAndOrderFront:nil];
     [self.window center];
-    
-    // Create the content view
+
     NSView *contentView = [[NSView alloc] initWithFrame:windowFrame];
     [self.window setContentView:contentView];
-    
-    // Create angle display label with tabular numbers (larger, light font)
+
+    // Angle label
     self.angleLabel = [[NSLabel alloc] init];
     [self.angleLabel setStringValue:@"Initializing..."];
     [self.angleLabel setFont:[NSFont monospacedDigitSystemFontOfSize:48 weight:NSFontWeightLight]];
     [self.angleLabel setAlignment:NSTextAlignmentCenter];
     [self.angleLabel setTextColor:[NSColor systemBlueColor]];
     [contentView addSubview:self.angleLabel];
-    
-    // Create velocity display label with tabular numbers
+
+    // Velocity label
     self.velocityLabel = [[NSLabel alloc] init];
     [self.velocityLabel setStringValue:@"Velocity: 00 deg/s"];
     [self.velocityLabel setFont:[NSFont monospacedDigitSystemFontOfSize:14 weight:NSFontWeightRegular]];
     [self.velocityLabel setAlignment:NSTextAlignmentCenter];
     [contentView addSubview:self.velocityLabel];
-    
-    // Create status label
+
+    // Status label
     self.statusLabel = [[NSLabel alloc] init];
     [self.statusLabel setStringValue:@"Detecting sensor..."];
     [self.statusLabel setFont:[NSFont systemFontOfSize:14]];
     [self.statusLabel setAlignment:NSTextAlignmentCenter];
     [self.statusLabel setTextColor:[NSColor secondaryLabelColor]];
     [contentView addSubview:self.statusLabel];
-    
-    // Create audio toggle button
+
+    // Audio toggle
     self.audioToggleButton = [[NSButton alloc] init];
     [self.audioToggleButton setTitle:@"Start Audio"];
     [self.audioToggleButton setBezelStyle:NSBezelStyleRounded];
@@ -101,8 +113,8 @@ typedef NS_ENUM(NSInteger, AudioMode) {
     [self.audioToggleButton setAction:@selector(toggleAudio:)];
     [self.audioToggleButton setTranslatesAutoresizingMaskIntoConstraints:NO];
     [contentView addSubview:self.audioToggleButton];
-    
-    // Create audio status label
+
+    // Audio status
     self.audioStatusLabel = [[NSLabel alloc] init];
     [self.audioStatusLabel setStringValue:@""];
     [self.audioStatusLabel setFont:[NSFont systemFontOfSize:14]];
@@ -130,30 +142,98 @@ typedef NS_ENUM(NSInteger, AudioMode) {
     [contentView addSubview:self.modeSelector];
     
     // Set up auto layout constraints
+    
+    // Advanced settings toggle
+    self.advancedToggleButton = [[NSButton alloc] init];
+    [self.advancedToggleButton setButtonType:NSSwitchButton];
+    [self.advancedToggleButton setTitle:@"Advanced Creak Settings"];
+    [self.advancedToggleButton setTarget:self];
+    [self.advancedToggleButton setAction:@selector(toggleAdvanced:)];
+    [self.advancedToggleButton setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [contentView addSubview:self.advancedToggleButton];
+
+    // Advanced container
+    self.advancedContainer = [[NSView alloc] initWithFrame:NSZeroRect];
+    [self.advancedContainer setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [contentView addSubview:self.advancedContainer];
+
+    // Jitter controls header
+    self.jitterHeaderLabel = [[NSLabel alloc] init];
+    [self.jitterHeaderLabel setStringValue:@"Jitter Filter Controls"];
+    [self.jitterHeaderLabel setFont:[NSFont systemFontOfSize:15 weight:NSFontWeightSemibold]];
+    [self.jitterHeaderLabel setAlignment:NSTextAlignmentCenter];
+    [self.advancedContainer addSubview:self.jitterHeaderLabel];
+
+    // Jitter toggle
+    self.jitterToggleButton = [[NSButton alloc] init];
+    [self.jitterToggleButton setButtonType:NSSwitchButton];
+    [self.jitterToggleButton setTitle:@"Enable Jitter Filter"];
+    [self.jitterToggleButton setTarget:self];
+    [self.jitterToggleButton setAction:@selector(toggleJitterFilter:)];
+    [self.jitterToggleButton setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [self.advancedContainer addSubview:self.jitterToggleButton];
+
+    // Amplitude slider + label
+    self.amplitudeLabel = [[NSLabel alloc] init];
+    [self.amplitudeLabel setStringValue:@"Amplitude (deg): —"];
+    [self.amplitudeLabel setAlignment:NSTextAlignmentCenter];
+    [self.advancedContainer addSubview:self.amplitudeLabel];
+    self.amplitudeSlider = [NSSlider sliderWithValue:8.5 minValue:2.0 maxValue:20.0 target:self action:@selector(amplitudeChanged:)];
+    [self.amplitudeSlider setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [self.advancedContainer addSubview:self.amplitudeSlider];
+
+    // Time window slider + label
+    self.timeWindowLabel = [[NSLabel alloc] init];
+    [self.timeWindowLabel setStringValue:@"Time Window (ms): —"];
+    [self.timeWindowLabel setAlignment:NSTextAlignmentCenter];
+    [self.advancedContainer addSubview:self.timeWindowLabel];
+    self.timeWindowSlider = [NSSlider sliderWithValue:120 minValue:40 maxValue:250 target:self action:@selector(timeWindowChanged:)];
+    [self.timeWindowSlider setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [self.advancedContainer addSubview:self.timeWindowSlider];
+
+    // Min delta slider + label
+    self.minDeltaLabel = [[NSLabel alloc] init];
+    [self.minDeltaLabel setStringValue:@"Min Delta (deg): —"];
+    [self.minDeltaLabel setAlignment:NSTextAlignmentCenter];
+    [self.advancedContainer addSubview:self.minDeltaLabel];
+    self.minDeltaSlider = [NSSlider sliderWithValue:0.3 minValue:0.05 maxValue:1.5 target:self action:@selector(minDeltaChanged:)];
+    [self.minDeltaSlider setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [self.advancedContainer addSubview:self.minDeltaSlider];
+
+    // Sign flips slider + label
+    self.signFlipsLabel = [[NSLabel alloc] init];
+    [self.signFlipsLabel setStringValue:@"Required Alternations: —"];
+    [self.signFlipsLabel setAlignment:NSTextAlignmentCenter];
+    [self.advancedContainer addSubview:self.signFlipsLabel];
+    self.signFlipsSlider = [NSSlider sliderWithValue:2 minValue:1 maxValue:5 target:self action:@selector(signFlipsChanged:)];
+    self.signFlipsSlider.numberOfTickMarks = 5;
+    self.signFlipsSlider.allowsTickMarkValuesOnly = YES;
+    [self.signFlipsSlider setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [self.advancedContainer addSubview:self.signFlipsSlider];
+
+    // Constraints
     [NSLayoutConstraint activateConstraints:@[
-        // Angle label (main display, now at top)
+        // Angle label
         [self.angleLabel.topAnchor constraintEqualToAnchor:contentView.topAnchor constant:40],
         [self.angleLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
         [self.angleLabel.widthAnchor constraintLessThanOrEqualToAnchor:contentView.widthAnchor constant:-40],
-        
+
         // Velocity label
         [self.velocityLabel.topAnchor constraintEqualToAnchor:self.angleLabel.bottomAnchor constant:15],
         [self.velocityLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
         [self.velocityLabel.widthAnchor constraintLessThanOrEqualToAnchor:contentView.widthAnchor constant:-40],
-        
+
         // Status label
         [self.statusLabel.topAnchor constraintEqualToAnchor:self.velocityLabel.bottomAnchor constant:15],
         [self.statusLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
         [self.statusLabel.widthAnchor constraintLessThanOrEqualToAnchor:contentView.widthAnchor constant:-40],
-        
-        // Audio toggle button
-        [self.audioToggleButton.topAnchor constraintEqualToAnchor:self.statusLabel.bottomAnchor constant:25],
+
+        // Audio toggle
+        [self.audioToggleButton.topAnchor constraintEqualToAnchor:self.statusLabel.bottomAnchor constant:15],
         [self.audioToggleButton.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
-        [self.audioToggleButton.widthAnchor constraintEqualToConstant:120],
-        [self.audioToggleButton.heightAnchor constraintEqualToConstant:32],
-        
-        // Audio status label
-        [self.audioStatusLabel.topAnchor constraintEqualToAnchor:self.audioToggleButton.bottomAnchor constant:15],
+
+        // Audio status
+        [self.audioStatusLabel.topAnchor constraintEqualToAnchor:self.audioToggleButton.bottomAnchor constant:10],
         [self.audioStatusLabel.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
         [self.audioStatusLabel.widthAnchor constraintLessThanOrEqualToAnchor:contentView.widthAnchor constant:-40],
         
@@ -167,13 +247,67 @@ typedef NS_ENUM(NSInteger, AudioMode) {
         [self.modeSelector.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
         [self.modeSelector.widthAnchor constraintEqualToConstant:200],
         [self.modeSelector.heightAnchor constraintEqualToConstant:28],
-        [self.modeSelector.bottomAnchor constraintLessThanOrEqualToAnchor:contentView.bottomAnchor constant:-20]
+
+        // Advanced toggle (below mode selector)
+        [self.advancedToggleButton.topAnchor constraintEqualToAnchor:self.modeSelector.bottomAnchor constant:20],
+        [self.advancedToggleButton.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
+
+        // Advanced container anchoring
+        [self.advancedContainer.topAnchor constraintEqualToAnchor:self.advancedToggleButton.bottomAnchor constant:8],
+        [self.advancedContainer.centerXAnchor constraintEqualToAnchor:contentView.centerXAnchor],
+        [self.advancedContainer.widthAnchor constraintLessThanOrEqualToAnchor:contentView.widthAnchor constant:-40],
+
+        // Jitter header (inside container)
+        [self.jitterHeaderLabel.topAnchor constraintEqualToAnchor:self.advancedContainer.topAnchor constant:6],
+        [self.jitterHeaderLabel.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.jitterHeaderLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.advancedContainer.widthAnchor],
+
+        // Jitter toggle (inside container)
+        [self.jitterToggleButton.topAnchor constraintEqualToAnchor:self.jitterHeaderLabel.bottomAnchor constant:8],
+        [self.jitterToggleButton.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+
+        // Amplitude (inside container)
+        [self.amplitudeLabel.topAnchor constraintEqualToAnchor:self.jitterToggleButton.bottomAnchor constant:12],
+        [self.amplitudeLabel.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.amplitudeLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.advancedContainer.widthAnchor],
+        [self.amplitudeSlider.topAnchor constraintEqualToAnchor:self.amplitudeLabel.bottomAnchor constant:6],
+        [self.amplitudeSlider.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.amplitudeSlider.widthAnchor constraintEqualToConstant:320],
+
+        // Time window (inside container)
+        [self.timeWindowLabel.topAnchor constraintEqualToAnchor:self.amplitudeSlider.bottomAnchor constant:12],
+        [self.timeWindowLabel.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.timeWindowLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.advancedContainer.widthAnchor],
+        [self.timeWindowSlider.topAnchor constraintEqualToAnchor:self.timeWindowLabel.bottomAnchor constant:6],
+        [self.timeWindowSlider.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.timeWindowSlider.widthAnchor constraintEqualToConstant:320],
+
+        // Min delta (inside container)
+        [self.minDeltaLabel.topAnchor constraintEqualToAnchor:self.timeWindowSlider.bottomAnchor constant:12],
+        [self.minDeltaLabel.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.minDeltaLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.advancedContainer.widthAnchor],
+        [self.minDeltaSlider.topAnchor constraintEqualToAnchor:self.minDeltaLabel.bottomAnchor constant:6],
+        [self.minDeltaSlider.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.minDeltaSlider.widthAnchor constraintEqualToConstant:320],
+
+        // Sign flips (inside container)
+        [self.signFlipsLabel.topAnchor constraintEqualToAnchor:self.minDeltaSlider.bottomAnchor constant:12],
+        [self.signFlipsLabel.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.signFlipsLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.advancedContainer.widthAnchor],
+        [self.signFlipsSlider.topAnchor constraintEqualToAnchor:self.signFlipsLabel.bottomAnchor constant:6],
+        [self.signFlipsSlider.centerXAnchor constraintEqualToAnchor:self.advancedContainer.centerXAnchor],
+        [self.signFlipsSlider.widthAnchor constraintEqualToConstant:320],
     ]];
+
+    // Collapse advanced section by default
+    self.advancedToggleButton.state = NSControlStateValueOff;
+    self.advancedContainer.hidden = YES;
+    self.advancedContainerHeightConstraint = [self.advancedContainer.heightAnchor constraintEqualToConstant:0.0];
+    self.advancedContainerHeightConstraint.active = YES;
 }
 
 - (void)initializeLidSensor {
     self.lidSensor = [[LidAngleSensor alloc] init];
-    
     if (self.lidSensor.isAvailable) {
         [self.statusLabel setStringValue:@"Sensor detected - Reading angle..."];
         [self.statusLabel setTextColor:[NSColor systemGreenColor]];
@@ -188,9 +322,18 @@ typedef NS_ENUM(NSInteger, AudioMode) {
 - (void)initializeAudioEngines {
     self.creakAudioEngine = [[CreakAudioEngine alloc] init];
     self.thereminAudioEngine = [[ThereminAudioEngine alloc] init];
-    
     if (self.creakAudioEngine && self.thereminAudioEngine) {
         [self.audioStatusLabel setStringValue:@""];
+        // Initialize UI to engine defaults
+        self.jitterToggleButton.state = self.creakAudioEngine.jitterFilterEnabled ? NSControlStateValueOn : NSControlStateValueOff;
+        self.amplitudeSlider.doubleValue = self.creakAudioEngine.jitterAmplitudeDeg;
+        [self.amplitudeLabel setStringValue:[NSString stringWithFormat:@"Amplitude (deg): %.1f", self.creakAudioEngine.jitterAmplitudeDeg]];
+        self.timeWindowSlider.doubleValue = self.creakAudioEngine.jitterTimeWindowMs;
+        [self.timeWindowLabel setStringValue:[NSString stringWithFormat:@"Time Window (ms): %.0f", self.creakAudioEngine.jitterTimeWindowMs]];
+        self.minDeltaSlider.doubleValue = self.creakAudioEngine.jitterMinDeltaDeg;
+        [self.minDeltaLabel setStringValue:[NSString stringWithFormat:@"Min Delta (deg): %.2f", self.creakAudioEngine.jitterMinDeltaDeg]];
+        self.signFlipsSlider.integerValue = (NSInteger)self.creakAudioEngine.jitterMinSignFlips;
+        [self.signFlipsLabel setStringValue:[NSString stringWithFormat:@"Required Alternations: %lu", (unsigned long)self.creakAudioEngine.jitterMinSignFlips]];
     } else {
         [self.audioStatusLabel setStringValue:@"Audio initialization failed"];
         [self.audioStatusLabel setTextColor:[NSColor systemRedColor]];
@@ -228,6 +371,12 @@ typedef NS_ENUM(NSInteger, AudioMode) {
     
     // Update mode
     self.currentAudioMode = newMode;
+
+    // Hide/show advanced creak controls depending on mode
+    BOOL isCreak = (self.currentAudioMode == AudioModeCreak);
+    self.advancedToggleButton.hidden = !isCreak;
+    self.advancedContainer.hidden = !isCreak || (self.advancedToggleButton.state != NSControlStateValueOn);
+    self.advancedContainerHeightConstraint.active = !isCreak || (self.advancedToggleButton.state != NSControlStateValueOn);
     
     // Start new engine if the previous one was running
     if (wasRunning) {
@@ -253,75 +402,70 @@ typedef NS_ENUM(NSInteger, AudioMode) {
 }
 
 - (void)startUpdatingDisplay {
-    // Update every 16ms (60Hz) for smooth real-time audio and display updates
-    self.updateTimer = [NSTimer scheduledTimerWithTimeInterval:0.016
+    // Faster updates (100Hz) to minimize control latency
+    self.updateTimer = [NSTimer scheduledTimerWithTimeInterval:0.010
                                                         target:self
                                                       selector:@selector(updateAngleDisplay)
                                                       userInfo:nil
                                                        repeats:YES];
+    self.updateTimer.tolerance = 0.0;
+    [[NSRunLoop mainRunLoop] addTimer:self.updateTimer forMode:NSRunLoopCommonModes];
 }
 
-- (void)updateAngleDisplay {
-    if (!self.lidSensor.isAvailable) {
-        return;
-    }
-    
-    double angle = [self.lidSensor lidAngle];
-    
-    if (angle == -2.0) {
+-(void)updateAngleDisplay {
+    if (!self.lidSensor.isAvailable) return;
+    double rawAngle = [self.lidSensor lidAngle];
+    if (rawAngle == -2.0) {
         [self.angleLabel setStringValue:@"Read Error"];
         [self.angleLabel setTextColor:[NSColor systemOrangeColor]];
         [self.statusLabel setStringValue:@"Failed to read sensor data"];
         [self.statusLabel setTextColor:[NSColor systemOrangeColor]];
-    } else {
-        [self.angleLabel setStringValue:[NSString stringWithFormat:@"%.1f°", angle]];
-        [self.angleLabel setTextColor:[NSColor systemBlueColor]];
-        
-        // Update current audio engine with new angle
-        id currentEngine = [self currentAudioEngine];
-        if (currentEngine) {
-            [currentEngine updateWithLidAngle:angle];
-            
-            // Update velocity display with leading zero and whole numbers
-            double velocity = [currentEngine currentVelocity];
-            int roundedVelocity = (int)round(velocity);
-            if (roundedVelocity < 100) {
-                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %02d deg/s", roundedVelocity]];
-            } else {
-                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %d deg/s", roundedVelocity]];
-            }
-            
-            // Show audio parameters when running
-            if ([currentEngine isEngineRunning]) {
-                if (self.currentAudioMode == AudioModeCreak) {
-                    double gain = [currentEngine currentGain];
-                    double rate = [currentEngine currentRate];
-                    [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Gain: %.2f, Rate: %.2f", gain, rate]];
-                } else if (self.currentAudioMode == AudioModeTheremin) {
-                    double frequency = [currentEngine currentFrequency];
-                    double volume = [currentEngine currentVolume];
-                    [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Freq: %.1f Hz, Vol: %.2f", frequency, volume]];
-                }
-            }
-        }
-        
-        // Provide contextual status based on angle
-        NSString *status;
-        if (angle < 5.0) {
-            status = @"Lid is closed";
-        } else if (angle < 45.0) {
-            status = @"Lid slightly open";
-        } else if (angle < 90.0) {
-            status = @"Lid partially open";
-        } else if (angle < 120.0) {
-            status = @"Lid mostly open";
-        } else {
-            status = @"Lid fully open";
-        }
-        
-        [self.statusLabel setStringValue:status];
-        [self.statusLabel setTextColor:[NSColor secondaryLabelColor]];
+        return;
     }
+
+    // Update engine first, then display stabilized angle (creak) or raw (theremin)
+    double displayAngle = rawAngle;
+    if (self.currentAudioMode == AudioModeCreak) {
+        if (self.creakAudioEngine) {
+            [self.creakAudioEngine updateWithLidAngle:rawAngle];
+            displayAngle = self.creakAudioEngine.currentStabilizedAngle;
+            double velocity = self.creakAudioEngine.currentVelocity;
+            int rv = (int)llround(velocity);
+            if (rv < 100) {
+                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %02d deg/s", rv]];
+            } else {
+                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %d deg/s", rv]];
+            }
+            if (self.creakAudioEngine.isEngineRunning) {
+                [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Gain: %.2f, Rate: %.2f", self.creakAudioEngine.currentGain, self.creakAudioEngine.currentRate]];
+            }
+        }
+    } else { // Theremin
+        if (self.thereminAudioEngine) {
+            [self.thereminAudioEngine updateWithLidAngle:rawAngle];
+            double velocity = self.thereminAudioEngine.currentVelocity;
+            int rv = (int)llround(velocity);
+            if (rv < 100) {
+                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %02d deg/s", rv]];
+            } else {
+                [self.velocityLabel setStringValue:[NSString stringWithFormat:@"Velocity: %d deg/s", rv]];
+            }
+            if (self.thereminAudioEngine.isEngineRunning) {
+                [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Freq: %.1f Hz, Vol: %.2f", self.thereminAudioEngine.currentFrequency, self.thereminAudioEngine.currentVolume]];
+            }
+        }
+    }
+    [self.angleLabel setStringValue:[NSString stringWithFormat:@"%.1f°", displayAngle]];
+    [self.angleLabel setTextColor:[NSColor systemBlueColor]];
+
+    NSString *status;
+    if (displayAngle < 5.0) status = @"Lid is closed";
+    else if (displayAngle < 45.0) status = @"Lid slightly open";
+    else if (displayAngle < 90.0) status = @"Lid partially open";
+    else if (displayAngle < 135.0) status = @"Lid mostly open";
+    else status = @"Lid fully open";
+    [self.statusLabel setStringValue:status];
+    [self.statusLabel setTextColor:[NSColor secondaryLabelColor]];
 }
 
 @end
