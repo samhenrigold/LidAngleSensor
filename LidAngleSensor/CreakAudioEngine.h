@@ -29,6 +29,14 @@
 @property (nonatomic, assign, readonly) double currentVelocity;
 @property (nonatomic, assign, readonly) double currentGain;
 @property (nonatomic, assign, readonly) double currentRate;
+@property (nonatomic, assign, readonly) double currentStabilizedAngle; // Angle after hysteresis filter
+
+// Jitter filter configuration (live‑tunable)
+@property (nonatomic, assign) BOOL jitterFilterEnabled;          // Enable/disable jitter suppression
+@property (nonatomic, assign) double jitterAmplitudeDeg;          // Peak‑to‑peak amplitude threshold (deg)
+@property (nonatomic, assign) double jitterTimeWindowMs;          // Time window to consider (ms)
+@property (nonatomic, assign) double jitterMinDeltaDeg;           // Min delta to count a sign flip (deg)
+@property (nonatomic, assign) NSUInteger jitterMinSignFlips;      // Required alternations in window
 
 /**
  * Initialize the audio engine and load audio files.
@@ -58,5 +66,8 @@
  * @param velocity Angular velocity in degrees per second
  */
 - (void)setAngularVelocity:(double)velocity;
+
+/** Reset internal jitter history (e.g., when toggling the filter). */
+- (void)resetJitterHistory;
 
 @end
