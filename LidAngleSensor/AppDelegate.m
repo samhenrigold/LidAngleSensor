@@ -9,17 +9,20 @@
 #import "LidAngleSensor.h"
 #import "CreakAudioEngine.h"
 #import "ThereminAudioEngine.h"
+#import "FuturisticAudioEngine.h"
 #import "NSLabel.h"
 
 typedef NS_ENUM(NSInteger, AudioMode) {
     AudioModeCreak,
-    AudioModeTheremin
+    AudioModeTheremin,
+    AudioModeFuturistic
 };
 
 @interface AppDelegate ()
 @property (strong, nonatomic) LidAngleSensor *lidSensor;
 @property (strong, nonatomic) CreakAudioEngine *creakAudioEngine;
 @property (strong, nonatomic) ThereminAudioEngine *thereminAudioEngine;
+@property (strong, nonatomic) FuturisticAudioEngine *futuristicAudioEngine;
 @property (strong, nonatomic) NSLabel *angleLabel;
 @property (strong, nonatomic) NSLabel *statusLabel;
 @property (strong, nonatomic) NSLabel *velocityLabel;
@@ -46,6 +49,7 @@ typedef NS_ENUM(NSInteger, AudioMode) {
     [self.lidSensor stopLidAngleUpdates];
     [self.creakAudioEngine stopEngine];
     [self.thereminAudioEngine stopEngine];
+    [self.futuristicAudioEngine stopEngine];
 }
 
 - (BOOL)applicationSupportsSecureRestorableState:(NSApplication *)app {
@@ -120,9 +124,10 @@ typedef NS_ENUM(NSInteger, AudioMode) {
     
     // Create mode selector
     self.modeSelector = [[NSSegmentedControl alloc] init];
-    [self.modeSelector setSegmentCount:2];
+    [self.modeSelector setSegmentCount:3];
     [self.modeSelector setLabel:@"Creak" forSegment:0];
     [self.modeSelector setLabel:@"Theremin" forSegment:1];
+    [self.modeSelector setLabel:@"Futuristic" forSegment:2];
     [self.modeSelector setSelectedSegment:0]; // Default to creak
     [self.modeSelector setTarget:self];
     [self.modeSelector setAction:@selector(modeChanged:)];
@@ -188,8 +193,9 @@ typedef NS_ENUM(NSInteger, AudioMode) {
 - (void)initializeAudioEngines {
     self.creakAudioEngine = [[CreakAudioEngine alloc] init];
     self.thereminAudioEngine = [[ThereminAudioEngine alloc] init];
+    self.futuristicAudioEngine = [[FuturisticAudioEngine alloc] init];
     
-    if (self.creakAudioEngine && self.thereminAudioEngine) {
+    if (self.creakAudioEngine && self.thereminAudioEngine && self.futuristicAudioEngine) {
         [self.audioStatusLabel setStringValue:@""];
     } else {
         [self.audioStatusLabel setStringValue:@"Audio initialization failed"];
@@ -247,6 +253,8 @@ typedef NS_ENUM(NSInteger, AudioMode) {
             return self.creakAudioEngine;
         case AudioModeTheremin:
             return self.thereminAudioEngine;
+        case AudioModeFuturistic:
+            return self.futuristicAudioEngine;
         default:
             return self.creakAudioEngine;
     }
@@ -301,6 +309,10 @@ typedef NS_ENUM(NSInteger, AudioMode) {
                     double frequency = [currentEngine currentFrequency];
                     double volume = [currentEngine currentVolume];
                     [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Freq: %.1f Hz, Vol: %.2f", frequency, volume]];
+                } else if (self.currentAudioMode == AudioModeFuturistic) {
+                    double frequency = [currentEngine currentFrequency];
+                    double volume = [currentEngine currentVolume];
+                    [self.audioStatusLabel setStringValue:[NSString stringWithFormat:@"Freq: %.0f Hz, Vol: %.2f", frequency, volume]];
                 }
             }
         }
