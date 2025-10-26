@@ -17,7 +17,6 @@ static const double kMaxAngle = 135.0;           // degrees - fully open lid
 // Volume control constants - continuous tone with velocity modulation
 static const double kBaseVolume = 0.6;           // Base volume when at rest
 static const double kVelocityVolumeBoost = 0.4;  // Additional volume boost from movement
-static const double kVelocityFull = 8.0;         // deg/s - max volume boost at/under this velocity
 static const double kVelocityQuiet = 80.0;       // deg/s - no volume boost over this velocity
 
 // Vibrato constants
@@ -36,7 +35,6 @@ static const double kAdditionalDecayFactor = 0.85;    // Additional decay after 
 
 // Audio constants
 static const double kSampleRate = 44100.0;
-static const UInt32 kBufferSize = 512;
 
 @interface ThereminAudioEngine ()
 
