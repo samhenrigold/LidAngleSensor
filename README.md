@@ -12,7 +12,7 @@ Despite what the name would have you believe, it is a sensor that detects the an
 
 **Which devices have a lid angle sensor?**
 
-It was introduced with the 2019 16-inch MacBook Pro. If your laptop is newer, you probably have it. [People have reported](https://github.com/samhenrigold/LidAngleSensor/issues/13) that it **does not work on M1 devices**, I have not yet figured out a fix.
+It was introduced with the 2019 16-inch MacBook Pro. If your laptop is newer, you probably have it. [People have reported](https://github.com/samhenrigold/LidAngleSensor/issues/13) that it **does not work on M1/M2 devices**, I have not yet figured out a fix.
 
 **My laptop should have it, why doesn't it show up?**
 
@@ -20,8 +20,8 @@ I've only tested this on my M4 MacBook Pro and have hard-coded it to look for a 
 
 Known problematic models:
 
-- M1 MacBook Air
-- M1 MacBook Pro
+- M1 MacBook Air (the wedge-shaped one)
+- M1/M2 MacBook Pro with Touch Bar
 
 **Can I use this on my iMac?**
 
@@ -31,7 +31,9 @@ Known problematic models:
 
 **Why?**
 
-A lot of free time. I'm open to full-time work in NYC or remote. I'm a designer/design-engineer. https://samhenri.gold
+~~A lot of free time. I'm open to full-time work in NYC or remote. I'm a designer/design-engineer.~~ https://samhenri.gold
+
+I am now employed but I'm still doing this for the love of the game.
 
 **No I mean like why does my laptop need to know the exact angle of its lid?**
 
@@ -40,10 +42,6 @@ Oh. I don't know.
 **Can I contribute?**
 
 I guess.
-
-**Why does it say it's by Lisa?**
-
-I signed up for my developer account when I was a kid, used my mom's name, and now it's stuck that way forever and I can't change it. That's life.
 
 **How come the audio feels kind of...weird?**
 
