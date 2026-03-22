@@ -16,15 +16,15 @@ extension EnvironmentValues {
 
 @Observable
 final class LidAngleSensor {
-
+    
     // MARK: Published State
-
+    
     // 120 is completely arbitrary, but it's the angle that my laptop is currently at so it doesn't animate from zero.
     private(set) var angle: Double = 120
     private(set) var velocity: Double = 0
     private(set) var isAvailable: Bool = false
     private(set) var tick: UInt = 0
-
+    
     var status: String {
         guard isAvailable else { return "Sensor not available" }
         return switch angle {
@@ -35,29 +35,29 @@ final class LidAngleSensor {
         default: "Lid fully open"
         }
     }
-
+    
     // MARK: HID State
     //
     // nonisolated(unsafe) so deinit can access these from its unisolated context.
     // The cleanup in deinit is safe in practice: the object is being torn down, so no
     // concurrent main-actor access can occur.
-
+    
     @ObservationIgnored nonisolated(unsafe) private var hidDevice: IOHIDDevice?
     @ObservationIgnored nonisolated(unsafe) private var timer: Timer?
-
+    
     // MARK: Velocity Calculation State
-
+    
     @ObservationIgnored private var lastAngle: Double = 0
     @ObservationIgnored private var smoothedAngle: Double = 0
     @ObservationIgnored private var smoothedVelocity: Double = 0
     @ObservationIgnored private var lastUpdateTime: TimeInterval = 0
     @ObservationIgnored private var lastMovementTime: TimeInterval = 0
     @ObservationIgnored private var isFirstUpdate = true
-
+    
     // MARK: Constants
     //
     // nonisolated so the static let is accessible from deinit and static methods.
-
+    
     nonisolated private static let noOptions = IOOptionBits(kIOHIDOptionsTypeNone)
     private static let angleSmoothingFactor = 0.05
     private static let velocitySmoothingFactor = 0.3
@@ -65,9 +65,9 @@ final class LidAngleSensor {
     private static let movementTimeout: TimeInterval = 0.05
     private static let velocityDecay = 0.5
     private static let additionalDecay = 0.8
-
+    
     // MARK: Lifecycle
-
+    
     init() {
         hidDevice = Self.findSensor()
         if let device = hidDevice {
@@ -75,7 +75,7 @@ final class LidAngleSensor {
         }
         isAvailable = hidDevice != nil
     }
-
+    
     deinit {
         timer?.invalidate()
         timer = nil
@@ -83,9 +83,9 @@ final class LidAngleSensor {
             IOHIDDeviceClose(device, Self.noOptions)
         }
     }
-
+    
     // MARK: Control
-
+    
     func start() {
         guard isAvailable, timer == nil else { return }
         timer = .scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
@@ -94,20 +94,20 @@ final class LidAngleSensor {
             MainActor.assumeIsolated { self?.poll() }
         }
     }
-
+    
     func stop() {
         timer?.invalidate()
         timer = nil
     }
-
+    
     // MARK: Polling
-
+    
     private func poll() {
         guard let device = hidDevice else { return }
-
+        
         var report = [UInt8](repeating: 0, count: 8)
         var length = CFIndex(report.count)
-
+        
         let result = IOHIDDeviceGetReport(
             device,
             kIOHIDReportTypeFeature,
@@ -115,22 +115,22 @@ final class LidAngleSensor {
             &report,
             &length
         )
-
+        
         guard result == kIOReturnSuccess, length >= 3 else { return }
-
+        
         let rawValue = UInt16(report[2]) << 8 | UInt16(report[1])
         let rawAngle = Double(rawValue)
-
+        
         updateVelocity(from: rawAngle)
         angle = rawAngle
         tick &+= 1
     }
-
+    
     // MARK: Velocity Calculation
-
+    
     private func updateVelocity(from rawAngle: Double) {
         let now = CACurrentMediaTime()
-
+        
         guard !isFirstUpdate else {
             lastAngle = rawAngle
             smoothedAngle = rawAngle
@@ -139,27 +139,27 @@ final class LidAngleSensor {
             isFirstUpdate = false
             return
         }
-
+        
         let dt = now - lastUpdateTime
         guard dt > 0, dt < 1.0 else {
             lastUpdateTime = now
             return
         }
-
+        
         smoothedAngle =
         Self.angleSmoothingFactor * rawAngle
         + (1 - Self.angleSmoothingFactor) * smoothedAngle
-
+        
         let delta = smoothedAngle - lastAngle
         let instantVelocity: Double
-
+        
         if abs(delta) < Self.movementThreshold {
             instantVelocity = 0
         } else {
             instantVelocity = abs(delta / dt)
             lastAngle = smoothedAngle
         }
-
+        
         if instantVelocity > 0 {
             smoothedVelocity =
             Self.velocitySmoothingFactor * instantVelocity
@@ -168,50 +168,50 @@ final class LidAngleSensor {
         } else {
             smoothedVelocity *= Self.velocityDecay
         }
-
+        
         if now - lastMovementTime > Self.movementTimeout {
             smoothedVelocity *= Self.additionalDecay
         }
-
+        
         lastUpdateTime = now
         velocity = smoothedVelocity
     }
-
+    
     // MARK: HID Discovery
-
+    
     private static func findSensor() -> IOHIDDevice? {
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, noOptions)
-
+        
         guard IOHIDManagerOpen(manager, noOptions) == kIOReturnSuccess else {
             return nil
         }
-
+        
         defer {
             IOHIDManagerClose(manager, noOptions)
         }
-
+        
         let matching: [String: Any] = [
             kIOHIDVendorIDKey as String: 0x05AC,
             kIOHIDProductIDKey as String: 0x8104,
             "UsagePage": 0x0020,
             "Usage": 0x008A,
         ]
-
+        
         IOHIDManagerSetDeviceMatching(manager, matching as CFDictionary)
-
+        
         guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>,
               !devices.isEmpty
         else {
             return nil
         }
-
+        
         for device in devices {
             guard IOHIDDeviceOpen(device, noOptions) == kIOReturnSuccess else { continue }
             defer { IOHIDDeviceClose(device, noOptions) }
-
+            
             var report = [UInt8](repeating: 0, count: 8)
             var length = CFIndex(report.count)
-
+            
             let result = IOHIDDeviceGetReport(
                 device,
                 kIOHIDReportTypeFeature,
@@ -219,12 +219,12 @@ final class LidAngleSensor {
                 &report,
                 &length
             )
-
+            
             if result == kIOReturnSuccess, length >= 3 {
                 return device
             }
         }
-
+        
         return nil
     }
 }

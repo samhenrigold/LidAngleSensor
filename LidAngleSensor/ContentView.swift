@@ -9,15 +9,15 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.lidAngleSensor) private var sensor
-
+    
     @State private var creakEngine = CreakAudioEngine()
     @State private var thereminEngine = ThereminAudioEngine()
     @State private var mode: AudioMode = .creak
     @State private var isPlaying = false
     @State private var inspectorShown = true
-
+    
     private var activeEngine: any AudioEngineProtocol { engine(for: mode) }
-
+    
     var body: some View {
         NavigationStack {
             VStack {
@@ -29,7 +29,7 @@ struct ContentView: View {
                         .animation(.default, value: sensor.angle)
                         .font(.system(size: 144, weight: .thin))
                         .tracking(-3)
-
+                    
                     Group {
                         Text("Velocity: \(String(format: "%02d", Int(sensor.velocity.rounded()))) deg/s")
                         Text(sensor.status)
@@ -56,7 +56,7 @@ struct ContentView: View {
                     .symbolVariant(.fill)
                     .disabled(!sensor.isAvailable)
                     .keyboardShortcut(.space, modifiers: [])
-
+                    
                     Button {
                         inspectorShown.toggle()
                     } label: {
@@ -74,7 +74,7 @@ struct ContentView: View {
                     .onChange(of: mode) { oldMode, newMode in
                         switchMode(from: oldMode, to: newMode)
                     }
-
+                    
                     Section {
                         switch mode {
                         case .creak:
@@ -92,16 +92,16 @@ struct ContentView: View {
         .frame(minWidth: 800, minHeight: 400)
         .frame(idealWidth: 900, idealHeight: 667)
     }
-
+    
     // MARK: Audio Control
-
+    
     private func engine(for mode: AudioMode) -> any AudioEngineProtocol {
         switch mode {
         case .creak:    creakEngine
         case .theremin: thereminEngine
         }
     }
-
+    
     private func toggleAudio() {
         if isPlaying {
             activeEngine.stop()
@@ -110,13 +110,13 @@ struct ContentView: View {
         }
         isPlaying.toggle()
     }
-
+    
     private func switchMode(from oldMode: AudioMode, to newMode: AudioMode) {
         guard isPlaying else { return }
         engine(for: oldMode).stop()
         engine(for: newMode).start()
     }
-
+    
     private func feedAudioEngine() {
         guard isPlaying else { return }
         switch mode {

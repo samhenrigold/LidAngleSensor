@@ -11,7 +11,7 @@ import SwiftUI
 struct LidAngleSensorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var sensor = LidAngleSensor()
-
+    
     var body: some Scene {
         Window(Text("Lid Angle Sensor"), id: "main") {
             ContentView()
