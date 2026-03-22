@@ -12,7 +12,6 @@ struct ContentView: View {
 
     @State private var creakEngine = CreakAudioEngine()
     @State private var thereminEngine = ThereminAudioEngine()
-    @State private var customEngine = CustomAudioEngine()
     @State private var mode: AudioMode = .creak
     @State private var isPlaying = false
 
@@ -43,13 +42,12 @@ struct ContentView: View {
                 toggleAudio()
             }
             .controlSize(.large)
-            .disabled(!sensor.isAvailable || (mode == .custom && !customEngine.isFileLoaded))
+            .disabled(!sensor.isAvailable)
 
             AudioParameterView(
                 mode: mode,
                 creakEngine: creakEngine,
-                thereminEngine: thereminEngine,
-                customEngine: customEngine
+                thereminEngine: thereminEngine
             )
             .foregroundStyle(.secondary)
             .opacity(isPlaying ? 1 : 0)
@@ -65,10 +63,6 @@ struct ContentView: View {
                 switchMode(from: oldMode, to: newMode)
             }
 
-            if mode == .custom {
-                CustomParameterView(engine: customEngine)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
         }
         .padding(40)
         .frame(minWidth: 440, minHeight: 400)
@@ -86,7 +80,6 @@ struct ContentView: View {
         switch mode {
         case .creak:    creakEngine
         case .theremin: thereminEngine
-        case .custom:   customEngine
         }
     }
 
@@ -112,8 +105,6 @@ struct ContentView: View {
             creakEngine.update(velocity: sensor.velocity)
         case .theremin:
             thereminEngine.update(angle: sensor.angle, velocity: sensor.velocity)
-        case .custom:
-            customEngine.update(angle: sensor.angle, velocity: sensor.velocity)
         }
     }
 }
