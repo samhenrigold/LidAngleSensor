@@ -14,72 +14,83 @@ struct ContentView: View {
     @State private var thereminEngine = ThereminAudioEngine()
     @State private var mode: AudioMode = .creak
     @State private var isPlaying = false
+    @State private var inspectorShown = true
 
     private var activeEngine: any AudioEngineProtocol { engine(for: mode) }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Group {
-                    if sensor.isAvailable {
-                        Text("\(sensor.angle, format: .number.precision(.fractionLength(1)))°")
-                            .monospacedDigit()
-                            .foregroundStyle(.blue)
-                            .contentTransition(.numericText(value: sensor.angle))
-                            .animation(.default, value: sensor.angle)
-                    } else {
-                        Text("Not Available")
-                            .foregroundStyle(.red)
+            VStack {
+                if sensor.isAvailable {
+                    Text("\(sensor.angle, format: .number.precision(.fractionLength(1)))°")
+                        .monospacedDigit()
+                        .foregroundStyle(.blue)
+                        .contentTransition(.numericText(value: sensor.angle))
+                        .animation(.default, value: sensor.angle)
+                        .font(.system(size: 144, weight: .thin))
+                        .tracking(-3)
+
+                    Group {
+                        Text("Velocity: \(String(format: "%02d", Int(sensor.velocity.rounded()))) deg/s")
+                        Text(sensor.status)
                     }
-                }
-                .font(.system(size: 48, weight: .light, design: .default))
-
-                // yes yes the old style formatter is gross but I can't figure out how to do leading zero padding w/ the new formatter
-                Text("Velocity: \(String(format: "%02d", Int(sensor.velocity.rounded()))) deg/s")
-                    .monospacedDigit()
                     .foregroundStyle(.secondary)
-
-                Text(sensor.status)
-                    .foregroundStyle(.secondary)
-
-                Divider()
-                    .padding(.horizontal, 40)
-
-                Button(isPlaying ? "Stop Audio" : "Start Audio") {
-                    toggleAudio()
+                } else {
+                    Text("Not Available")
+                        .foregroundStyle(.red)
+                        .font(.system(size: 56, weight: .light))
                 }
-                .controlSize(.large)
-                .disabled(!sensor.isAvailable)
-
-                AudioParameterView(
-                    mode: mode,
-                    creakEngine: creakEngine,
-                    thereminEngine: thereminEngine
-                )
-                .foregroundStyle(.secondary)
-                .opacity(isPlaying ? 1 : 0)
-                .animation(.easeInOut(duration: 0.15), value: isPlaying)
-
-                Picker("Audio Mode", selection: $mode) {
-                    ForEach(AudioMode.allCases) { m in
-                        Text(m.rawValue).tag(m)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: mode) { oldMode, newMode in
-                    switchMode(from: oldMode, to: newMode)
-                }
-
             }
-            .padding(40)
-            .frame(minWidth: 440, minHeight: 400)
-            .animation(.easeInOut(duration: 0.2), value: mode)
-            .onAppear { sensor.start() }
-            .onDisappear { sensor.stop() }
+            .monospacedDigit()
+            .onAppear {
+                sensor.start()
+            }
             .onChange(of: sensor.tick) {
                 feedAudioEngine()
             }
+            .toolbar {
+                ToolbarItemGroup {
+                    Button(isPlaying ? "Stop" : "Play", systemImage: isPlaying ? "stop" : "play") {
+                        toggleAudio()
+                    }
+                    .symbolVariant(.fill)
+                    .disabled(!sensor.isAvailable)
+                    .keyboardShortcut(.space, modifiers: [])
+
+                    Button {
+                        inspectorShown.toggle()
+                    } label: {
+                        Label("Audio Controls", systemImage: "slider.horizontal.3")
+                    }
+                }
+            }
+            .inspector(isPresented: $inspectorShown) {
+                Form {
+                    Picker("Audio Mode", selection: $mode) {
+                        ForEach(AudioMode.allCases) { m in
+                            Text(m.rawValue).tag(m)
+                        }
+                    }
+                    .onChange(of: mode) { oldMode, newMode in
+                        switchMode(from: oldMode, to: newMode)
+                    }
+
+                    Section {
+                        switch mode {
+                        case .creak:
+                            LabeledContent("Gain", value: creakEngine.gain, format: .number.precision(.fractionLength(2)))
+                            LabeledContent("Rate", value: creakEngine.rate, format: .number.precision(.fractionLength(2)))
+                        case .theremin:
+                            LabeledContent("Frequency (Hz)", value: thereminEngine.frequency, format: .number.precision(.fractionLength(1)))
+                            LabeledContent("Volume", value: thereminEngine.volume, format: .number.precision(.fractionLength(2)))
+                        }
+                    }
+                }
+                .inspectorColumnWidth(min: 200, ideal: 240, max: 320)
+            }
         }
+        .frame(minWidth: 800, minHeight: 400)
+        .frame(idealWidth: 900, idealHeight: 667)
     }
 
     // MARK: Audio Control
