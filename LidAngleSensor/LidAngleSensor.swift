@@ -53,6 +53,8 @@ final class LidAngleSensor {
     
     // MARK: Velocity Calculation State
     
+    @ObservationIgnored private var hidReport = [UInt8](repeating: 0, count: 8)
+
     @ObservationIgnored private var lastAngle = Double.zero
     @ObservationIgnored private var smoothedAngle = Double.zero
     @ObservationIgnored private var smoothedVelocity = Double.zero
@@ -102,7 +104,7 @@ final class LidAngleSensor {
         guard isAvailable, timer == nil, let device = hidDevice else { return }
         guard IOHIDDeviceOpen(device, Self.noOptions) == kIOReturnSuccess else { return }
         isDeviceOpen = true
-        timer = .scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+        timer = .scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
             // The timer is scheduled on the main run loop, so this callback fires
             // on the main thread — safe to assume main-actor isolation.
             MainActor.assumeIsolated { self?.poll() }
@@ -123,20 +125,19 @@ final class LidAngleSensor {
     private func poll() {
         guard let device = hidDevice else { return }
         
-        var report = [UInt8](repeating: 0, count: 8)
-        var length = CFIndex(report.count)
+        var length = CFIndex(hidReport.count)
         
         let result = IOHIDDeviceGetReport(
             device,
             kIOHIDReportTypeFeature,
             1,
-            &report,
+            &hidReport,
             &length
         )
         
         guard result == kIOReturnSuccess, length >= 3 else { return }
         
-        let rawValue = UInt16(report[2]) << 8 | UInt16(report[1])
+        let rawValue = UInt16(hidReport[2]) << 8 | UInt16(hidReport[1])
         let rawAngle = Double(rawValue)
         
         updateVelocity(from: rawAngle)

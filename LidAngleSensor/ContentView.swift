@@ -21,10 +21,8 @@ struct ContentView: View {
         NavigationStack {
             VStack {
                 if sensor.isAvailable {
-                    Text("\(sensor.angle, format: .number.precision(.fractionLength(1)))°")
+                    Text("\(sensor.angle, format: .number)°")
                         .foregroundStyle(.blue)
-                        .contentTransition(.numericText(value: sensor.angle))
-                        .animation(.default, value: sensor.angle)
                         .font(.system(size: 144, weight: .thin))
                         .tracking(-3)
 

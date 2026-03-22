@@ -145,20 +145,23 @@ final class ThereminAudioEngine: AudioEngineProtocol {
         bufferList: UnsafeMutablePointer<AudioBufferList>
     ) -> OSStatus {
         let output = bufferList.pointee.mBuffers.mData!.assumingMemoryBound(to: Float.self)
+        let freq = renderFrequency
+        let vol = renderVolume
+        let vibratoDepth = renderVibratoDepth
         let vibratoInc = 2.0 * .pi * renderVibratoFreq / Self.sampleRate
+        let twoPi = 2.0 * Double.pi
 
         for i in 0..<Int(frameCount) {
-            let vibrato = sin(vibratoPhase) * renderVibratoDepth
-            let modFreq = renderFrequency * (1 + vibrato)
-            let inc = 2.0 * .pi * modFreq / Self.sampleRate
+            let vibrato = sin(vibratoPhase) * vibratoDepth
+            let inc = twoPi * freq * (1 + vibrato) / Self.sampleRate
 
-            output[i] = Float(sin(phase) * renderVolume * 0.25)
+            output[i] = Float(sin(phase) * vol * 0.25)
 
             phase += inc
             vibratoPhase += vibratoInc
 
-            if phase >= 2.0 * .pi { phase -= 2.0 * .pi }
-            if vibratoPhase >= 2.0 * .pi { vibratoPhase -= 2.0 * .pi }
+            if phase >= twoPi { phase -= twoPi }
+            if vibratoPhase >= twoPi { vibratoPhase -= twoPi }
         }
 
         return noErr
