@@ -11,9 +11,9 @@ import SwiftUI
 struct LidAngleSensorApp: App {
     @State private var sensor = LidAngleSensor()
     @State private var audioController = AudioController()
-
+    
     var body: some Scene {
-        Window(Text("Lid Angle Sensor"), id: "main") {
+        Window("Lid Angle Sensor", id: "main") {
             ContentView()
                 .environment(\.lidAngleSensor, sensor)
                 .environment(\.audioController, audioController)
@@ -22,14 +22,21 @@ struct LidAngleSensorApp: App {
                 }
         }
         .windowResizability(.contentSize)
-
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Link(destination: URL(string: "https://github.com/samhenrigold/LidAngleSensor")!) {
+                    Label("View Source", systemImage: "swift")
+                }
+            }
+        }
+        
         MenuBarExtra {
             MenuBarView()
                 .environment(\.lidAngleSensor, sensor)
                 .environment(\.audioController, audioController)
         } label: {
             Image(systemName: "angle")
-
+            
             if sensor.isAvailable {
                 Text("\(sensor.angle, format: .number.precision(.fractionLength(0)))°")
                     .monospacedDigit()

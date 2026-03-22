@@ -14,25 +14,25 @@ extension EnvironmentValues {
 @MainActor
 @Observable
 final class AudioController {
-
+    
     // MARK: Published State
-
+    
     private(set) var isPlaying = false
-
+    
     var mode: AudioMode = .creak {
         didSet {
             guard oldValue != mode else { return }
             modeDidChange(from: oldValue)
         }
     }
-
+    
     // MARK: Engines
-
+    
     let creakEngine = CreakAudioEngine()
     let thereminEngine = ThereminAudioEngine()
-
+    
     // MARK: Control
-
+    
     func toggle() {
         if isPlaying {
             engine(for: mode).stop()
@@ -41,7 +41,7 @@ final class AudioController {
         }
         isPlaying.toggle()
     }
-
+    
     func feed(angle: Double, velocity: Double) {
         guard isPlaying else { return }
         switch mode {
@@ -51,18 +51,18 @@ final class AudioController {
             thereminEngine.update(angle: angle, velocity: velocity)
         }
     }
-
+    
     // MARK: Private
-
+    
     var activeEngine: any AudioEngineProtocol { engine(for: mode) }
-
+    
     private func engine(for mode: AudioMode) -> any AudioEngineProtocol {
         switch mode {
         case .creak:    creakEngine
         case .theremin: thereminEngine
         }
     }
-
+    
     private func modeDidChange(from oldMode: AudioMode) {
         guard isPlaying else { return }
         engine(for: oldMode).stop()

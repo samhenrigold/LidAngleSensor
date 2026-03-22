@@ -13,7 +13,7 @@ struct ParameterSlider: View {
     let range: ClosedRange<Double>
     var unit = ""
     var fractionDigits = 1
-
+    
     var body: some View {
         LabeledContent {
             Slider(value: $value, in: range)
@@ -22,7 +22,7 @@ struct ParameterSlider: View {
             Text(formattedValue)
         }
     }
-
+    
     private var formattedValue: String {
         let number = value.formatted(.number.precision(.fractionLength(fractionDigits)))
         return unit.isEmpty ? number : "\(number) \(unit)"

@@ -7,9 +7,9 @@
 		<key>ISGraphicIconConfiguration</key>
 		<dict>
 			<key>ISEnclosureColor</key>
-			<string>blue</string>
+			<string>yellow</string>
 			<key>ISSymbolColor</key>
-			<string>white</string>
+			<string>black</string>
 			<key>ISSymbolName</key>
 			<string>angle</string>
 		</dict>

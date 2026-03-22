@@ -37,6 +37,12 @@ struct ContentView: View {
                     Text("Not Available")
                         .foregroundStyle(.red)
                         .font(.system(size: 56, weight: .light))
+
+                    Text(sensor.status)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 400)
+                        .padding(.top, 4)
                 }
             }
             .monospacedDigit()
@@ -67,13 +73,13 @@ struct ContentView: View {
             }
             .inspector(isPresented: $inspectorShown) {
                 Form {
-                    Picker("Audio Mode", selection: $controller.mode) {
-                        ForEach(AudioMode.allCases) { m in
-                            Text(m.rawValue).tag(m)
+                    Section {
+                        Picker("Audio Mode", selection: $controller.mode) {
+                            ForEach(AudioMode.allCases) { m in
+                                Text(m.rawValue).tag(m)
+                            }
                         }
-                    }
 
-                    Section("Live") {
                         switch audioController.mode {
                         case .creak:
                             LabeledContent("Gain", value: audioController.creakEngine.gain, format: .number.precision(.fractionLength(2)))
@@ -124,6 +130,7 @@ struct ContentView: View {
                     }
                 }
                 .inspectorColumnWidth(min: 220, ideal: 260, max: 340)
+                .disabled(!sensor.isAvailable)
             }
         }
         .frame(minWidth: 800, minHeight: 400)

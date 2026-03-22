@@ -25,8 +25,13 @@ final class LidAngleSensor {
     private(set) var isAvailable = false
     private(set) var tick = UInt.zero
     
+    /// Full diagnostic report from hardware detection.
+    @ObservationIgnored private(set) var diagnostic: LASDiagnostic?
+    
     var status: String {
-        guard isAvailable else { return "Sensor not available" }
+        guard isAvailable else {
+            return diagnostic?.statusMessage ?? "Sensor not available"
+        }
         return switch angle {
         case ..<5: "Lid is closed"
         case ..<45: "Lid slightly open"
@@ -43,6 +48,7 @@ final class LidAngleSensor {
     // concurrent main-actor access can occur.
     
     @ObservationIgnored nonisolated(unsafe) private var hidDevice: IOHIDDevice?
+    @ObservationIgnored nonisolated(unsafe) private var isDeviceOpen = false
     @ObservationIgnored nonisolated(unsafe) private var timer: Timer?
     
     // MARK: Velocity Calculation State
@@ -69,17 +75,23 @@ final class LidAngleSensor {
     // MARK: Lifecycle
     
     init() {
-        hidDevice = Self.findSensor()
-        if let device = hidDevice {
-            IOHIDDeviceOpen(device, Self.noOptions)
+        let diag = LASDiagnostic.run()
+        diagnostic = diag
+        
+        if case .foundStandard(let device) = diag.probeResult {
+            hidDevice = device
+            isAvailable = true
+            // Device is opened in start(), not here. Temporary LidAngleSensor instances
+            // that SwiftUI creates (and discards) as @State initial-value expressions must
+            // never touch the device handle; otherwise their deinit would close it out from
+            // under the real sensor instance.
         }
-        isAvailable = hidDevice != nil
     }
     
     deinit {
         timer?.invalidate()
         timer = nil
-        if let device = hidDevice {
+        if isDeviceOpen, let device = hidDevice {
             IOHIDDeviceClose(device, Self.noOptions)
         }
     }
@@ -87,7 +99,9 @@ final class LidAngleSensor {
     // MARK: Control
     
     func start() {
-        guard isAvailable, timer == nil else { return }
+        guard isAvailable, timer == nil, let device = hidDevice else { return }
+        guard IOHIDDeviceOpen(device, Self.noOptions) == kIOReturnSuccess else { return }
+        isDeviceOpen = true
         timer = .scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
             // The timer is scheduled on the main run loop, so this callback fires
             // on the main thread — safe to assume main-actor isolation.
@@ -98,6 +112,10 @@ final class LidAngleSensor {
     func stop() {
         timer?.invalidate()
         timer = nil
+        if isDeviceOpen, let device = hidDevice {
+            IOHIDDeviceClose(device, Self.noOptions)
+            isDeviceOpen = false
+        }
     }
     
     // MARK: Polling
@@ -177,54 +195,4 @@ final class LidAngleSensor {
         velocity = smoothedVelocity
     }
     
-    // MARK: HID Discovery
-    
-    private static func findSensor() -> IOHIDDevice? {
-        let manager = IOHIDManagerCreate(kCFAllocatorDefault, noOptions)
-        
-        guard IOHIDManagerOpen(manager, noOptions) == kIOReturnSuccess else {
-            return nil
-        }
-        
-        defer {
-            IOHIDManagerClose(manager, noOptions)
-        }
-        
-        let matching: [String: Any] = [
-            kIOHIDVendorIDKey as String: 0x05AC,
-            kIOHIDProductIDKey as String: 0x8104,
-            "UsagePage": 0x0020,
-            "Usage": 0x008A,
-        ]
-        
-        IOHIDManagerSetDeviceMatching(manager, matching as CFDictionary)
-        
-        guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>,
-              !devices.isEmpty
-        else {
-            return nil
-        }
-        
-        for device in devices {
-            guard IOHIDDeviceOpen(device, noOptions) == kIOReturnSuccess else { continue }
-            defer { IOHIDDeviceClose(device, noOptions) }
-            
-            var report = [UInt8](repeating: 0, count: 8)
-            var length = CFIndex(report.count)
-            
-            let result = IOHIDDeviceGetReport(
-                device,
-                kIOHIDReportTypeFeature,
-                1,
-                &report,
-                &length
-            )
-            
-            if result == kIOReturnSuccess, length >= 3 {
-                return device
-            }
-        }
-        
-        return nil
-    }
 }
