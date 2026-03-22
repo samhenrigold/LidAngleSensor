@@ -23,7 +23,7 @@ final class LidAngleSensor {
     private(set) var angle = 120.0
     private(set) var velocity = Double.zero
     private(set) var isAvailable = false
-    private(set) var tick: UInt = 0
+    private(set) var tick = UInt.zero
     
     var status: String {
         guard isAvailable else { return "Sensor not available" }
