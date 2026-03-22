@@ -62,11 +62,6 @@ final class CreakAudioEngine: AudioEngineProtocol {
         loopBuffer = buffer
     }
 
-    deinit {
-        // AVAudioEngine and AVAudioPlayerNode clean up their resources on dealloc.
-        // Explicit stop() cannot be called here because deinit runs outside the main actor.
-    }
-
     // MARK: Control
 
     func start() {
