@@ -10,8 +10,8 @@ import AVFoundation
 @Observable
 final class ThereminAudioEngine: AudioEngineProtocol {
     private(set) var isRunning = false
-    private(set) var frequency: Double = 110.0
-    private(set) var volume: Double = 0.6
+    private(set) var frequency = 110.0
+    private(set) var volume = 0.6
     
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
@@ -24,15 +24,15 @@ final class ThereminAudioEngine: AudioEngineProtocol {
     // race is benign here — a briefly stale frequency or volume value produces
     // no audible artefact.
     
-    @ObservationIgnored nonisolated(unsafe) private var renderFrequency: Double = 110.0
-    @ObservationIgnored nonisolated(unsafe) private var renderVolume: Double = 0.6
-    @ObservationIgnored nonisolated(unsafe) private var phase: Double = 0
-    @ObservationIgnored nonisolated(unsafe) private var vibratoPhase: Double = 0
+    @ObservationIgnored nonisolated(unsafe) private var renderFrequency = 110.0
+    @ObservationIgnored nonisolated(unsafe) private var renderVolume = 0.6
+    @ObservationIgnored nonisolated(unsafe) private var phase = Double.zero
+    @ObservationIgnored nonisolated(unsafe) private var vibratoPhase = Double.zero
     
     // MARK: Ramping State
     
-    private var targetFrequency: Double = 110.0
-    private var targetVolume: Double = 0.6
+    private var targetFrequency = 110.0
+    private var targetVolume = 0.6
     private var lastRampTime: TimeInterval = 0
     
     // MARK: Constants

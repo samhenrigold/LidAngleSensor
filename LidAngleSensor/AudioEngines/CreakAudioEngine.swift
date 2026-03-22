@@ -13,8 +13,8 @@ final class CreakAudioEngine: AudioEngineProtocol {
     // MARK: Published State
     
     private(set) var isRunning = false
-    private(set) var gain: Double = 0
-    private(set) var rate: Double = 1.0
+    private(set) var gain = Double.zero
+    private(set) var rate = 1.0
     
     // MARK: Audio Graph
     
@@ -25,8 +25,8 @@ final class CreakAudioEngine: AudioEngineProtocol {
     
     // MARK: Ramping State
     
-    private var targetGain: Double = 0
-    private var targetRate: Double = 1.0
+    private var targetGain = Double.zero
+    private var targetRate = 1.0
     private var lastRampTime: TimeInterval = 0
     
     // MARK: Constants

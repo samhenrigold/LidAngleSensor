@@ -20,9 +20,9 @@ final class LidAngleSensor {
     // MARK: Published State
     
     // 120 is completely arbitrary, but it's the angle that my laptop is currently at so it doesn't animate from zero.
-    private(set) var angle: Double = 120
-    private(set) var velocity: Double = 0
-    private(set) var isAvailable: Bool = false
+    private(set) var angle = 120.0
+    private(set) var velocity = Double.zero
+    private(set) var isAvailable = false
     private(set) var tick: UInt = 0
     
     var status: String {
@@ -47,9 +47,9 @@ final class LidAngleSensor {
     
     // MARK: Velocity Calculation State
     
-    @ObservationIgnored private var lastAngle: Double = 0
-    @ObservationIgnored private var smoothedAngle: Double = 0
-    @ObservationIgnored private var smoothedVelocity: Double = 0
+    @ObservationIgnored private var lastAngle = Double.zero
+    @ObservationIgnored private var smoothedAngle = Double.zero
+    @ObservationIgnored private var smoothedVelocity = Double.zero
     @ObservationIgnored private var lastUpdateTime: TimeInterval = 0
     @ObservationIgnored private var lastMovementTime: TimeInterval = 0
     @ObservationIgnored private var isFirstUpdate = true
