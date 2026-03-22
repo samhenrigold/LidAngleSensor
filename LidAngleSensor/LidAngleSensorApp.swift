@@ -9,12 +9,16 @@ import SwiftUI
 
 @main
 struct LidAngleSensorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var sensor = LidAngleSensor()
 
     var body: some Scene {
-        WindowGroup {
+        Window(Text("Lid Angle Sensor"), id: "main") {
             ContentView()
                 .environment(\.lidAngleSensor, sensor)
+                .onAppear {
+                    NSWindow.allowsAutomaticWindowTabbing = false
+                }
         }
         .windowResizability(.contentSize)
     }
