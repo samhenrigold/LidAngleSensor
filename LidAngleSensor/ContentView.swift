@@ -18,59 +18,67 @@ struct ContentView: View {
     private var activeEngine: any AudioEngineProtocol { engine(for: mode) }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text(sensor.isAvailable
-                 ? "\(sensor.angle, format: .number.precision(.fractionLength(1)))°"
-                 : "Not Available")
-                .font(.system(size: 48, weight: .light, design: .default))
-                .monospacedDigit()
-                .foregroundStyle(sensor.isAvailable ? .blue : .red)
-                .contentTransition(.numericText(value: sensor.angle))
-                .animation(.default, value: sensor.angle)
-
-            Text("Velocity: \(sensor.velocity, format: .number.precision(.fractionLength(0))) deg/s")
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-
-            Text(sensor.status)
-                .foregroundStyle(.secondary)
-
-            Divider()
-                .padding(.horizontal, 40)
-
-            Button(isPlaying ? "Stop Audio" : "Start Audio") {
-                toggleAudio()
-            }
-            .controlSize(.large)
-            .disabled(!sensor.isAvailable)
-
-            AudioParameterView(
-                mode: mode,
-                creakEngine: creakEngine,
-                thereminEngine: thereminEngine
-            )
-            .foregroundStyle(.secondary)
-            .opacity(isPlaying ? 1 : 0)
-            .animation(.easeInOut(duration: 0.15), value: isPlaying)
-
-            Picker("Audio Mode", selection: $mode) {
-                ForEach(AudioMode.allCases) { m in
-                    Text(m.rawValue).tag(m)
+        NavigationStack {
+            VStack(spacing: 20) {
+                Group {
+                    if sensor.isAvailable {
+                        Text("\(sensor.angle, format: .number.precision(.fractionLength(1)))°")
+                            .monospacedDigit()
+                            .foregroundStyle(.blue)
+                            .contentTransition(.numericText(value: sensor.angle))
+                            .animation(.default, value: sensor.angle)
+                    } else {
+                        Text("Not Available")
+                            .foregroundStyle(.red)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: mode) { oldMode, newMode in
-                switchMode(from: oldMode, to: newMode)
-            }
+                .font(.system(size: 48, weight: .light, design: .default))
 
-        }
-        .padding(40)
-        .frame(minWidth: 440, minHeight: 400)
-        .animation(.easeInOut(duration: 0.2), value: mode)
-        .onAppear { sensor.start() }
-        .onDisappear { sensor.stop() }
-        .onChange(of: sensor.tick) {
-            feedAudioEngine()
+                // yes yes the old style formatter is gross but I can't figure out how to do leading zero padding w/ the new formatter
+                Text("Velocity: \(String(format: "%02d", Int(sensor.velocity.rounded()))) deg/s")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+
+                Text(sensor.status)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+                    .padding(.horizontal, 40)
+
+                Button(isPlaying ? "Stop Audio" : "Start Audio") {
+                    toggleAudio()
+                }
+                .controlSize(.large)
+                .disabled(!sensor.isAvailable)
+
+                AudioParameterView(
+                    mode: mode,
+                    creakEngine: creakEngine,
+                    thereminEngine: thereminEngine
+                )
+                .foregroundStyle(.secondary)
+                .opacity(isPlaying ? 1 : 0)
+                .animation(.easeInOut(duration: 0.15), value: isPlaying)
+
+                Picker("Audio Mode", selection: $mode) {
+                    ForEach(AudioMode.allCases) { m in
+                        Text(m.rawValue).tag(m)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: mode) { oldMode, newMode in
+                    switchMode(from: oldMode, to: newMode)
+                }
+
+            }
+            .padding(40)
+            .frame(minWidth: 440, minHeight: 400)
+            .animation(.easeInOut(duration: 0.2), value: mode)
+            .onAppear { sensor.start() }
+            .onDisappear { sensor.stop() }
+            .onChange(of: sensor.tick) {
+                feedAudioEngine()
+            }
         }
     }
 
