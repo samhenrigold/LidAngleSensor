@@ -9,4 +9,5 @@ protocol AudioEngineProtocol {
     var isRunning: Bool { get }
     func start()
     func stop()
+    func resetToDefaults()
 }

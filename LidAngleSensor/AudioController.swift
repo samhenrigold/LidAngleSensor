@@ -54,6 +54,8 @@ final class AudioController {
 
     // MARK: Private
 
+    var activeEngine: any AudioEngineProtocol { engine(for: mode) }
+
     private func engine(for mode: AudioMode) -> any AudioEngineProtocol {
         switch mode {
         case .creak:    creakEngine
