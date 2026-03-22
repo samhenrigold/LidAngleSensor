@@ -41,8 +41,8 @@ final class ThereminAudioEngine: AudioEngineProtocol {
     // so they are accessible from any concurrency context.
     
     nonisolated private static let sampleRate = 44100.0
-    private static let minFrequency = 110.0    // A2
-    private static let maxFrequency = 440.0    // A4
+    private static let minFrequency = 110.0  // A2
+    private static let maxFrequency = 440.0  // A4
     private static let minAngle = 0.0
     private static let maxAngle = 135.0
     
